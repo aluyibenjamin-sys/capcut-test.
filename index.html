@@ -45,7 +45,7 @@ const hat=new THREE.Group();headGroup.add(hat);mesh(new THREE.CylinderGeometry(.
 const arms=[new THREE.Group(),new THREE.Group()],legs=[new THREE.Group(),new THREE.Group()];
 for(let i=0;i<2;i++){root.add(arms[i]);arms[i].position.set(i?-.43:.43,1.58,0);const side=i?-1:1;mesh(new THREE.SphereGeometry(.17,14,12),cloth,arms[i],0,0,0);mesh(new THREE.CapsuleGeometry(.115,.47,5,10),cloth,arms[i],0,-.31,0);mesh(new THREE.SphereGeometry(.12,12,10),skin,arms[i],0,-.65,.015);root.add(legs[i]);legs[i].position.set(side*.19,.91,0);mesh(new THREE.CapsuleGeometry(.145,.48,5,10),pants,legs[i],0,-.29,0);mesh(new THREE.CylinderGeometry(.15,.14,.24,12),leather,legs[i],0,-.67,.04);mesh(new THREE.BoxGeometry(.29,.14,.48),dark,legs[i],0,-.79,.13)}
 const data={root,arms,legs,torso,head:headGroup};actors.push(data);return data}
-function clearWorld(){while(world.children.length)world.remove(world.children[0]);actors=[];moving=[]}
+function clearWorld(){while(world.children.length)world.remove(world.children[0]);actors=[];moving=[];doors=[];pickupProps=[]}
 function ground(color){const g=mesh(new THREE.PlaneGeometry(160,160),mat(color),world,0,-.08,0);g.rotation.x=-Math.PI/2;g.receiveShadow=true}
 function tree(x,z){const g=new THREE.Group();world.add(g);box(g,0,.8,0,.28,1.6,.28,'#765038');mesh(new THREE.ConeGeometry(1,2.2,8),mat('#39734c'),g,0,2.2,0);g.position.set(x,0,z)}
 function building(x,z,color,roof){
@@ -100,7 +100,7 @@ else if(actionMode==='pickup'){const target=new THREE.Vector3(4,0,4.5);a.root.po
 }
 if(item.mapPin){const p=item.curve.getPoint((t*.075)%1);item.mapPin.position.set(p.x,.65,p.z);item.mapPin.scale.setScalar(1+Math.sin(t*6)*.12)}}
 const doorOpen=actionMode==='door'?1:0;doors.forEach((d,i)=>{const target=doorOpen&&i===0?-1.35:0;d.hinge.rotation.y+=(target-d.hinge.rotation.y)*.055});
-pickupProps.forEach((p,i)=>{const active=actionMode==='pickup'&&i===0;p.rotation.z+=(active?-.15:0-p.rotation.z)*.04;p.position.y+=(active?.5:0-p.position.y)*.04});
+pickupProps.forEach((p,i)=>{const active=actionMode==='pickup'&&i===0;p.rotation.z+=((active?-.15:0)-p.rotation.z)*.04;p.position.y+=((active?.5:0)-p.position.y)*.04});
 }
 function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;if(playing)elapsed+=dt;update(elapsed);const target=mode==='map'?new THREE.Vector3(0,0,0):new THREE.Vector3(0,1,0);const camMode=document.querySelector('#camera').value;if(camMode==='follow'&&mode!=='map'){const lead=actors[0]?.root.position||target;camera.position.lerp(new THREE.Vector3(lead.x+10,lead.y+8,lead.z+18),.035);camera.lookAt(lead.x,1.1,lead.z-5)}else if(camMode==='low'){camera.position.lerp(new THREE.Vector3(0,3,17),.03);camera.lookAt(0,1,0)}else{camera.position.lerp(new THREE.Vector3(12,15,19),.03);camera.lookAt(target)}renderer.render(scene,camera)}
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}new ResizeObserver(resize).observe(stage);resize();
