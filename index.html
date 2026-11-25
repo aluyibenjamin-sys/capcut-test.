@@ -8,7 +8,21 @@
 <div class="settings"><select id="scene"><option value="town">3D town · chase</option><option value="map">animated map · route</option><option value="battle">3D battlefield · advance</option></select><select id="camera"><option value="follow">tracking camera</option><option value="wide">wide shot</option><option value="low">low-angle shot</option></select></div><div class="settings"><select id="actorSelect"><option value="0">character 1</option><option value="1">character 2</option></select><select id="propSelect"><option value="0">barrel 1</option><option value="1">barrel 2</option><option value="2">barrel 3</option></select><select id="action"><option value="run">action: run</option><option value="walk">action: walk</option><option value="idle">action: stand / idle</option><option value="look">action: look around</option><option value="wave">action: wave</option><option value="punch">action: punch</option><option value="fall">action: fall down</option><option value="door">interact: open a door</option><option value="pickup">interact: pick up a barrel</option></select></div>
 <div id="status">3D engine loading…</div><div class="note">engine test · no narrator, TTS, captions or subtitles. use the scene selector to test different visual environments.</div></main>
 <script type="module">
-import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js').then(THREE=>{
+const loadThree=async()=>{
+  const sources=[
+    'https://unpkg.com/three@0.160.0/build/three.module.js',
+    'https://esm.sh/three@0.160.0'
+  ];
+  let lastError;
+  for(const url of sources){
+    try{
+      const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('CDN timed out')),10000));
+      return await Promise.race([import(url),timeout]);
+    }catch(err){lastError=err;console.warn('Three.js source failed:',url,err)}
+  }
+  throw lastError||new Error('No Three.js source could be loaded');
+};
+loadThree().then(THREE=>{
 const stage=document.querySelector('#stage'),status=document.querySelector('#status'),hud=document.querySelector('#hud');
 const scene=new THREE.Scene();scene.background=new THREE.Color('#8fc3e2');scene.fog=new THREE.Fog('#8fc3e2',24,75);
 const camera=new THREE.PerspectiveCamera(43,9/16,.1,180);camera.position.set(8,8,13);
@@ -103,5 +117,5 @@ document.querySelector('#play').onclick=()=>{playing=!playing;document.querySele
 document.querySelector('#scene').onchange=e=>build(e.target.value);document.querySelector('#actorSelect').onchange=e=>{selectedActor=Number(e.target.value);status.textContent='selected character '+(selectedActor+1)};document.querySelector('#propSelect').onchange=e=>{selectedProp=Number(e.target.value);status.textContent='selected barrel '+(selectedProp+1)};document.querySelector('#action').onchange=e=>{actionMode=e.target.value;actionStarted=elapsed;if(heldProp){heldProp.parent?.remove(heldProp);world.add(heldProp);heldProp=null}status.textContent='character '+(selectedActor+1)+' · '+actionMode};document.querySelector('#next').onclick=()=>{const s=document.querySelector('#scene');s.selectedIndex=(s.selectedIndex+1)%s.options.length;build(s.value)};
 document.querySelector('#record').onclick=()=>{if(rec&&rec.state==='recording'){rec.stop();return}if(!renderer.domElement.captureStream||!window.MediaRecorder){status.textContent='recording not supported in this browser';return}const stream=renderer.domElement.captureStream(30),mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm';let chunks=[];try{rec=new MediaRecorder(stream,{mimeType:mime})}catch(e){status.textContent='could not start recording';return}rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};rec.onstop=()=>{const blob=new Blob(chunks,{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='toon-story-3d-scene.webm';a.click();setTimeout(()=>URL.revokeObjectURL(url),8000);stream.getTracks().forEach(v=>v.stop());document.querySelector('#record').textContent='● record';status.textContent='scene recording exported · WebM'};rec.start();document.querySelector('#record').textContent='■ stop';status.textContent='recording scene… keep this page open'};
 build('town');frame(performance.now());status.textContent='3D engine ready · real 3D scene and character locomotion';
-}).catch(err=>{const s=document.querySelector('#status');s.textContent='3D engine failed to load: '+(err?.message||String(err))+' · check internet connection and reload';console.error('3D engine startup failed',err)});
+}).catch(err=>{const s=document.querySelector('#status');s.textContent='3D engine failed to load: '+(err?.message||String(err))+' · CDN blocked or WebGL unavailable';console.error('3D engine startup failed',err)});
 </script></body></html>
