@@ -73,8 +73,8 @@ const data={root,arms,legs,torso,head:headGroup};actors.push(data);return data}
 function clearWorld(){while(world.children.length)world.remove(world.children[0]);actors=[];moving=[];doors=[];pickupProps=[];heldProp=null;selectedProp=0}
 function ground(color){
 const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;
-const ctx=canvas.getContext('2d'),base=new THREE.Color(color),pixels=ctx.createImageData(512,512);
-for(let i=0;i<pixels.data.length;i+=4){const n=(Math.random()-.5)*24;pixels.data[i]=Math.max(0,Math.min(255,base.r*255+n));pixels.data[i+1]=Math.max(0,Math.min(255,base.g*255+n));pixels.data[i+2]=Math.max(0,Math.min(255,base.b*255+n));pixels.data[i+3]=255}
+const ctx=canvas.getContext('2d'),base={r:parseInt(color.slice(1,3),16),g:parseInt(color.slice(3,5),16),b:parseInt(color.slice(5,7),16)},pixels=ctx.createImageData(512,512);
+for(let i=0;i<pixels.data.length;i+=4){const n=(Math.random()-.5)*24;pixels.data[i]=Math.max(0,Math.min(255,base.r+n));pixels.data[i+1]=Math.max(0,Math.min(255,base.g+n));pixels.data[i+2]=Math.max(0,Math.min(255,base.b+n));pixels.data[i+3]=255}
 ctx.putImageData(pixels,0,0);
 for(let i=0;i<1800;i++){const x=Math.random()*512,y=Math.random()*512,r=.4+Math.random()*2.2;ctx.fillStyle=Math.random()>.5?'rgba(35,28,20,.13)':'rgba(238,211,164,.12)';ctx.beginPath();ctx.ellipse(x,y,r,r*.55,Math.random()*Math.PI,0,Math.PI*2);ctx.fill()}
 const texture=new THREE.CanvasTexture(canvas);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(16,16);texture.anisotropy=renderer.capabilities.getMaxAnisotropy();if(THREE.SRGBColorSpace)texture.colorSpace=THREE.SRGBColorSpace;
