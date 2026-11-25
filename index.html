@@ -22,14 +22,29 @@ function mesh(geo,material,parent=world,x=0,y=0,z=0){const o=new THREE.Mesh(geo,
 function box(parent,x,y,z,w,h,d,color){return mesh(new THREE.BoxGeometry(w,h,d),mat(color),parent,x,y,z)}
 function cylinder(parent,a,b,r1,r2,color){const dir=new THREE.Vector3().subVectors(b,a),o=mesh(new THREE.CylinderGeometry(r2,r1,dir.length(),10),mat(color),parent);o.position.copy(a).add(b).multiplyScalar(.5);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());return o}
 function limb(parent,len,r,color){const pivot=new THREE.Group();parent.add(pivot);mesh(new THREE.CylinderGeometry(r*.72,r,len,10),mat(color),pivot,0,-len/2,0);return pivot}
-function makePerson(color,accent,x,z,scale=1){const root=new THREE.Group();world.add(root);root.position.set(x,0,z);root.scale.setScalar(scale);
-const torso=mesh(new THREE.CapsuleGeometry(.34,.72,5,10),mat(color),root,0,1.35,0);const head=mesh(new THREE.SphereGeometry(.34,20,16),mat('#e9b88f'),root,0,2.12,0);mesh(new THREE.SphereGeometry(.35,20,12,0,Math.PI*2,0,Math.PI*.45),mat(accent),root,0,2.22,0);
-mesh(new THREE.SphereGeometry(.045,8,8),mat('#201e26'),root,-.12,2.14,.29);mesh(new THREE.SphereGeometry(.045,8,8),mat('#201e26'),root,.12,2.14,.29);
-const arms=[limb(root,.72,.105,color),limb(root,.72,.105,color)],legs=[limb(root,.82,.13,'#303849'),limb(root,.82,.13,'#303849')];
-arms[0].position.set(-.39,1.62,0);arms[1].position.set(.39,1.62,0);legs[0].position.set(-.19,.94,0);legs[1].position.set(.19,.94,0);
-for(const a of arms){mesh(new THREE.SphereGeometry(.12,10,8),mat('#e9b88f'),a,0,-.73,0)}
-for(const l of legs){mesh(new THREE.BoxGeometry(.25,.14,.48),mat('#302d32'),l,0,-.82,.12)}
-const data={root,arms,legs,torso,head};actors.push(data);return data}
+function makePerson(color,accent,x,z,scale=1){
+const root=new THREE.Group();world.add(root);root.position.set(x,0,z);root.scale.setScalar(scale);
+const skin=mat('#d99d76'),dark=mat('#29252b'),cloth=mat(color),trim=mat(accent),pants=mat('#394354'),leather=mat('#49332b');
+const torso=new THREE.Group();root.add(torso);torso.position.y=1.25;
+mesh(new THREE.CapsuleGeometry(.39,.72,7,14),cloth,torso,0,.12,0);
+mesh(new THREE.BoxGeometry(.17,.78,.045),trim,torso,0,.1,.385);
+mesh(new THREE.BoxGeometry(.13,.58,.055),mat('#f0d9b2'),torso,-.12,.12,.39).rotation.z=-.18;
+mesh(new THREE.BoxGeometry(.13,.58,.055),mat('#f0d9b2'),torso,.12,.12,.39).rotation.z=.18;
+mesh(new THREE.BoxGeometry(.84,.12,.1),leather,torso,0,-.34,.02);
+mesh(new THREE.BoxGeometry(.18,.16,.12),trim,torso,0,-.34,.09);
+mesh(new THREE.BoxGeometry(.22,.28,.2),leather,torso,.48,-.16,0);
+const neck=mesh(new THREE.CylinderGeometry(.13,.15,.22,12),skin,root,0,1.78,0);
+const headGroup=new THREE.Group();root.add(headGroup);headGroup.position.set(0,2.12,.02);
+mesh(new THREE.SphereGeometry(.37,24,20),skin,headGroup,0,0,0);
+mesh(new THREE.SphereGeometry(.16,16,12),skin,headGroup,0,-.19,.22);
+for(const ex of [-.135,.135]){mesh(new THREE.SphereGeometry(.064,12,10),mat('#fff4dc'),headGroup,ex,.055,.315);mesh(new THREE.SphereGeometry(.033,10,8),dark,headGroup,ex,.055,.37);mesh(new THREE.SphereGeometry(.018,8,8),mat('#ffffff'),headGroup,ex-.01,.075,.39)}
+mesh(new THREE.SphereGeometry(.045,10,8),mat('#b9785e'),headGroup,0,-.045,.37);
+mesh(new THREE.TorusGeometry(.105,.025,8,18,Math.PI),dark,headGroup,0,-.17,.31);
+const hair=mesh(new THREE.SphereGeometry(.385,20,12,0,Math.PI*2,0,Math.PI*.42),dark,headGroup,0,.13,-.025);
+const hat=new THREE.Group();headGroup.add(hat);mesh(new THREE.CylinderGeometry(.29,.29,.09,24),trim,hat,0,.32,0);mesh(new THREE.CylinderGeometry(.19,.23,.32,20),mat('#765035'),hat,0,.49,0);mesh(new THREE.BoxGeometry(.12,.07,.025),mat('#e9c77f'),hat,0,.49,.22);
+const arms=[new THREE.Group(),new THREE.Group()],legs=[new THREE.Group(),new THREE.Group()];
+for(let i=0;i<2;i++){root.add(arms[i]);arms[i].position.set(i?-.43:.43,1.58,0);const side=i?-1:1;mesh(new THREE.SphereGeometry(.17,14,12),cloth,arms[i],0,0,0);mesh(new THREE.CapsuleGeometry(.115,.47,5,10),cloth,arms[i],0,-.31,0);mesh(new THREE.SphereGeometry(.12,12,10),skin,arms[i],0,-.65,.015);root.add(legs[i]);legs[i].position.set(side*.19,.91,0);mesh(new THREE.CapsuleGeometry(.145,.48,5,10),pants,legs[i],0,-.29,0);mesh(new THREE.CylinderGeometry(.15,.14,.24,12),leather,legs[i],0,-.67,.04);mesh(new THREE.BoxGeometry(.29,.14,.48),dark,legs[i],0,-.79,.13)}
+const data={root,arms,legs,torso,head:headGroup};actors.push(data);return data}
 function clearWorld(){while(world.children.length)world.remove(world.children[0]);actors=[];moving=[]}
 function ground(color){const g=mesh(new THREE.PlaneGeometry(160,160),mat(color),world,0,-.08,0);g.rotation.x=-Math.PI/2;g.receiveShadow=true}
 function tree(x,z){const g=new THREE.Group();world.add(g);box(g,0,.8,0,.28,1.6,.28,'#765038');mesh(new THREE.ConeGeometry(1,2.2,8),mat('#39734c'),g,0,2.2,0);g.position.set(x,0,z)}
@@ -43,7 +58,7 @@ const pts=[new THREE.Vector3(-8,.28,13),new THREE.Vector3(-4,.28,7),new THREE.Ve
 function battlefield(){scene.background.set('#d4a58b');scene.fog.color.set('#d4a58b');ground('#9a765e');for(let i=0;i<12;i++){const x=-13+(i*7%26),z=-22+(i*11%44);mesh(new THREE.DodecahedronGeometry(.8+(i%3)*.4),mat(i%2?'#6e6258':'#83786a'),world,x,.45,z)}for(let i=0;i<7;i++)box(world,-14+i*4,.7,-30, .18,1.4,.18,'#584638');for(let i=0;i<4;i++)tree(-13+i*9,22);
 for(let i=0;i<5;i++){const a=makePerson(i%2?'#344f85':'#9d4439','#d3b77b',-5+i*2.5,12+(i%2)*2,.78);a.root.rotation.y=Math.PI;moving.push({actor:a,start:a.root.position.clone(),end:new THREE.Vector3(-5+i*2.5,0,-15),speed:.38+(i%3)*.08,offset:i*.3})}}
 function build(m){clearWorld();mode=m;elapsed=0;if(m==='town')town();if(m==='map')mapScene();if(m==='battle')battlefield();hud.textContent=m==='town'?'SCENE 01 · WESTERN TOWN':m==='map'?'SCENE 02 · ANIMATED MAP':'SCENE 03 · BATTLEFIELD';camera.position.set(8,8,13);camera.lookAt(0,1,0);status.textContent='3D scene ready · '+m}
-function update(t){for(const item of moving){if(item.actor){const q=Math.max(0,Math.min(1,((t*item.speed+item.offset)%9)/9));item.actor.root.position.lerpVectors(item.start,item.end,q);const run=t*11+item.offset;item.actor.legs[0].rotation.x=Math.sin(run)*.85;item.actor.legs[1].rotation.x=-Math.sin(run)*.85;item.actor.arms[0].rotation.x=-Math.sin(run)*.75;item.actor.arms[1].rotation.x=Math.sin(run)*.75;item.actor.root.rotation.y=Math.PI+Math.sin(run)*.08;item.actor.root.position.y=Math.abs(Math.sin(run*2))*.045}
+function update(t){for(const item of moving){if(item.actor){const q=Math.max(0,Math.min(1,((t*item.speed+item.offset)%9)/9));item.actor.root.position.lerpVectors(item.start,item.end,q);const run=t*10.5+item.offset;const stride=Math.sin(run);item.actor.legs[0].rotation.x=stride*.95;item.actor.legs[1].rotation.x=-stride*.95;item.actor.arms[0].rotation.x=-stride*.72-.12;item.actor.arms[1].rotation.x=stride*.72-.12;item.actor.arms[0].rotation.z=-.08;item.actor.arms[1].rotation.z=.08;item.actor.root.rotation.y=Math.PI+Math.sin(run)*.055;item.actor.root.position.y=Math.abs(Math.sin(run*2))*.075;item.actor.root.rotation.z=Math.sin(run)*.035;item.actor.torso.rotation.x=-.08+Math.abs(stride)*.045;item.actor.head.rotation.z=Math.sin(run*.5)*.035}
 if(item.mapPin){const p=item.curve.getPoint((t*.075)%1);item.mapPin.position.set(p.x,.65,p.z);item.mapPin.scale.setScalar(1+Math.sin(t*6)*.12)}}}
 function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;if(playing)elapsed+=dt;update(elapsed);const target=mode==='map'?new THREE.Vector3(0,0,0):new THREE.Vector3(0,1,0);const camMode=document.querySelector('#camera').value;if(camMode==='follow'&&mode!=='map'){const lead=actors[0]?.root.position||target;camera.position.lerp(new THREE.Vector3(lead.x+7,lead.y+6,lead.z+12),.035);camera.lookAt(lead.x,1.2,lead.z-3)}else if(camMode==='low'){camera.position.lerp(new THREE.Vector3(0,3,17),.03);camera.lookAt(0,1,0)}else{camera.position.lerp(new THREE.Vector3(12,15,19),.03);camera.lookAt(target)}renderer.render(scene,camera)}
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}new ResizeObserver(resize).observe(stage);resize();
