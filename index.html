@@ -2,10 +2,10 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Toon Story Studio</title>
 <style>
 *{box-sizing:border-box}body{margin:0;padding:16px;background:#10131b;color:#f4f2ec;font:15px system-ui;display:grid;place-items:center;min-height:100vh}main{width:min(100%,560px)}h1{font-size:20px;margin:0 0 5px}p{color:#b9c0ce;font-size:13px;margin:0 0 14px}.stage{width:100%;aspect-ratio:9/16;border:1px solid #454b5b;border-radius:18px;overflow:hidden;background:#c99b67}canvas{width:100%;height:100%;display:block}.controls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}button{border:0;border-radius:12px;padding:12px 14px;background:#293246;color:white;font-weight:650;flex:1;min-width:100px}button.primary{background:#e45b43}#status{font-size:12px;color:#aeb8c9;margin-top:9px;min-height:18px}
-</style></head><body><main><h1>toon story studio — conversation test</h1><p>two original characters talking, reacting, gesturing and moving in a western street.</p><div class="stage"><canvas id="c" width="720" height="1280"></canvas></div><div class="controls"><button id="play" class="primary">pause</button><button id="scene">change scene</button><button id="record">record 8 sec</button></div><div id="status">conversation animation running • code-drawn characters</div></main>
+</style></head><body><main><h1>toon story studio — conversation test</h1><p>two original characters talking, reacting, gesturing and moving in a western street.</p><div class="stage"><canvas id="c" width="720" height="1280"></canvas></div><div class="controls"><button id="play" class="primary">pause</button><button id="scene">change scene</button><button id="voice">▶ start voices</button><button id="record">record 8 sec</button></div><div id="status">conversation animation running • code-drawn characters</div></main>
 <script>
 const c=document.getElementById('c'),x=c.getContext('2d'),status=document.getElementById('status');
-let running=true,t=0,scene=0,recorder=null,chunks=[];
+let running=true,t=0,scene=0,recorder=null,chunks=[],voiceOn=false,activeSpeaker=-1,turn=0,voiceTimer=null;
 const lines=[['“you said this was a good idea!”','“it was a good idea… five minutes ago.”'],['“did you hear that?”','“hear what?!”'],['“hand over the map.”','“come and take it, then.”']];
 function rr(a,b,w,h,r,col){x.fillStyle=col;x.beginPath();x.roundRect(a,b,w,h,r);x.fill()}
 function path(points,w,col){x.strokeStyle=col;x.lineWidth=w;x.lineCap='round';x.lineJoin='round';x.beginPath();points.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.stroke()}
@@ -54,18 +54,21 @@ function draw(){
  let beat=Math.floor(t/3.2)%2,phase=t*1.8;
  // subtle approach and retreat through each exchange
  let shift=Math.sin(t*.65)*13;
- character(250-shift,835,phase,0,beat===0,scene===2?'angry':'normal');
- character(485+shift,800,phase+1,1,beat===1,scene===1&&beat===0?'surprised':'normal');
+ character(250-shift,835,phase,0,voiceOn?activeSpeaker===0:beat===0,scene===2?'angry':'normal');
+ character(485+shift,800,phase+1,1,voiceOn?activeSpeaker===1:beat===1,scene===1&&beat===0?'surprised':'normal');
  // props and dust
  if(scene===0){rr(430,940,170,36,10,'#5a392c');rr(450,912,125,38,8,'#b9864c')}
  for(let i=0;i<8;i++){let xx=(i*107+t*28)%760,yy=1030+(i%3)*40;x.fillStyle='rgba(245,224,183,.25)';x.beginPath();x.arc(xx,yy,11+(i%3)*5,0,7);x.fill()}
  x.restore();
- let speaker=Math.floor(t/3.2)%2,caption=lines[scene][speaker];
+ let speaker=voiceOn?(activeSpeaker<0?turn%2:activeSpeaker):Math.floor(t/3.2)%2,caption=lines[scene][speaker];
  rr(38,1080,644,116,18,'rgba(15,18,26,.86)');x.font='bold 39px system-ui';x.textAlign='center';x.lineWidth=7;x.strokeStyle='#17151a';x.strokeText(caption,360,1148,600);x.fillStyle='white';x.fillText(caption,360,1148,600);
  x.font='20px system-ui';x.fillStyle='rgba(255,255,255,.8)';x.fillText('TOON STORY STUDIO • CONVERSATION TEST',360,1235);
 }
 function loop(){if(running){t+=1/30;draw()}requestAnimationFrame(loop)}loop();
+function speakTurn(){if(!voiceOn)return;activeSpeaker=turn%2;let u=new SpeechSynthesisUtterance(lines[scene][activeSpeaker].replace(/[“”]/g,''));u.lang='en-US';u.rate=.92;u.pitch=activeSpeaker===0 ? .92 : 1.08;u.onend=()=>{if(!voiceOn)return;activeSpeaker=-1;turn++;draw();voiceTimer=setTimeout(speakTurn,350)};u.onerror=()=>{status.textContent='voice playback failed';activeSpeaker=-1};status.textContent='speaking: character '+(activeSpeaker+1);window.speechSynthesis.speak(u)}
+document.getElementById('voice').onclick=()=>{if(!('speechSynthesis' in window)){status.textContent='speech not supported; try Chrome';return}if(voiceOn){voiceOn=false;window.speechSynthesis.cancel();activeSpeaker=-1;clearTimeout(voiceTimer);document.getElementById('voice').textContent='▶ start voices';status.textContent='voices stopped'}else{voiceOn=true;turn=0;document.getElementById('voice').textContent='■ stop voices';speakTurn()}};
+
 document.getElementById('play').onclick=()=>{running=!running;document.getElementById('play').textContent=running?'pause':'play'};
-document.getElementById('scene').onclick=()=>{scene=(scene+1)%3;draw();status.textContent='set '+(scene+1)+' • new dialogue and location'};
+document.getElementById('scene').onclick=()=>{if(voiceOn){window.speechSynthesis.cancel();activeSpeaker=-1;turn=0}scene=(scene+1)%3;draw();status.textContent='set '+(scene+1)+' • new dialogue and location';if(voiceOn)voiceTimer=setTimeout(speakTurn,250)};
 document.getElementById('record').onclick=()=>{if(!c.captureStream||!window.MediaRecorder){status.textContent='recording unsupported here — use your phone screen recorder';return}if(recorder&&recorder.state==='recording'){recorder.stop();return}chunks=[];let stream=c.captureStream(30),mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm';try{recorder=new MediaRecorder(stream,{mimeType:mime})}catch(e){status.textContent='recording unavailable in this browser';return}recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onstop=()=>{let blob=new Blob(chunks,{type:'video/webm'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='toon-conversation-test.webm';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);status.textContent='recording ready — import the WebM into CapCut';document.getElementById('record').textContent='record 8 sec'};recorder.start();status.textContent='recording…';document.getElementById('record').textContent='stop recording';setTimeout(()=>{if(recorder&&recorder.state==='recording')recorder.stop()},8000)};
 </script></body></html>
