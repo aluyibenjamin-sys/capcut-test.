@@ -1,32 +1,43 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Toon Story Studio — v3</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Toon Story Studio — v4</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#0c1018;color:#f4f5fa;font:14px system-ui;padding:14px;display:grid;place-items:center;min-height:100vh}main{width:min(100%,620px)}h1{font-size:20px;margin:0 0 4px}p{color:#aeb8ca;margin:0 0 12px;font-size:13px}.stage{width:100%;aspect-ratio:9/16;max-height:72vh;background:#182434;border:1px solid #39475c;border-radius:16px;overflow:hidden;position:relative}canvas{width:100%;height:100%;display:block}.hud{position:absolute;top:10px;left:10px;padding:7px 10px;background:#101722bb;border:1px solid #ffffff22;border-radius:9px;font-size:11px;color:#e7edf8;pointer-events:none}.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}button,select{background:#263348;color:#f4f5fa;border:1px solid #45546b;border-radius:10px;padding:11px 8px;font-weight:650;min-width:0}button.primary{background:#e35d43;border-color:#e35d43}.settings{display:flex;gap:8px;margin-top:8px}.settings select{flex:1}#status{font-size:12px;color:#aeb8ca;margin-top:9px;min-height:18px}.note{font-size:11px;color:#8290a5;margin-top:7px;line-height:1.45}
-</style></head><body><main><h1>toon story studio · 3D engine <span style="color:#f2a36e;font-size:13px">v3</span></h1><p>procedural 3D characters, explorable environments, moving camera and map sequences.</p>
+</style></head><body><main><h1>toon story studio · 3D engine <span style="color:#f2a36e;font-size:13px">v4</span></h1><p>procedural 3D characters, explorable environments, moving camera and map sequences.</p>
 <div class="stage" id="stage"><div class="hud" id="hud">SCENE 01 · WESTERN TOWN</div></div>
 <div class="controls"><button id="play" class="primary">Ⅱ pause</button><button id="next">next scene ↗</button><button id="record">● record</button></div>
 <div class="settings"><select id="scene"><option value="town">3D town · chase</option><option value="map">animated map · route</option><option value="battle">3D battlefield · advance</option></select><select id="camera"><option value="follow">tracking camera</option><option value="wide">wide shot</option><option value="low">low-angle shot</option></select></div><div class="settings"><select id="actorSelect"><option value="0">character 1</option><option value="1">character 2</option></select><select id="propSelect"><option value="0">barrel 1</option><option value="1">barrel 2</option><option value="2">barrel 3</option></select><select id="action"><option value="run">action: run</option><option value="walk">action: walk</option><option value="idle">action: stand / idle</option><option value="look">action: look around</option><option value="wave">action: wave</option><option value="punch">action: punch</option><option value="fall">action: fall down</option><option value="door">interact: open a door</option><option value="pickup">interact: pick up a barrel</option></select></div>
-<div id="status">v3 · loading 3D engine…</div><div class="note">engine test · no narrator, TTS, captions or subtitles. use the scene selector to test different visual environments.</div></main>
-<script type="module">
-const loadThree=async()=>{
+<div id="status">v4 · loading Three.js…</div><div class="note">engine test · no narrator, TTS, captions or subtitles. use the scene selector to test different visual environments.</div></main>
+<script>
+const status=document.querySelector('#status');
+const loadScript=(url)=>new Promise((resolve,reject)=>{
+  const script=document.createElement('script');
+  let settled=false;
+  const finish=(err)=>{if(settled)return;settled=true;clearTimeout(timer);script.onload=script.onerror=null;if(err){script.remove();reject(err)}else if(window.THREE){resolve(window.THREE)}else{script.remove();reject(new Error('Library loaded without THREE global'))}};
+  const timer=setTimeout(()=>finish(new Error('script load timed out')),9000);
+  script.src=url;
+  script.async=true;
+  script.onload=()=>finish();
+  script.onerror=()=>finish(new Error('script request failed'));
+  document.head.appendChild(script);
+});
+async function loadThree(){
   const sources=[
-    'https://unpkg.com/three@0.160.0/build/three.module.js',
-    'https://esm.sh/three@0.160.0'
+    'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.149.0/three.min.js',
+    'https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js'
   ];
   let lastError;
-  for(const url of sources){
-    try{
-      const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('CDN timed out')),10000));
-      return await Promise.race([import(url),timeout]);
-    }catch(err){lastError=err;console.warn('Three.js source failed:',url,err)}
+  for(let i=0;i<sources.length;i++){
+    status.textContent='v4 · loading 3D library · source '+(i+1)+'/'+sources.length;
+    try{return await loadScript(sources[i])}
+    catch(err){lastError=err;console.warn('Three.js source failed:',sources[i],err)}
   }
   throw lastError||new Error('No Three.js source could be loaded');
-};
+}
 loadThree().then(THREE=>{
 const stage=document.querySelector('#stage'),status=document.querySelector('#status'),hud=document.querySelector('#hud');
 const scene=new THREE.Scene();scene.background=new THREE.Color('#8fc3e2');scene.fog=new THREE.Fog('#8fc3e2',24,75);
 const camera=new THREE.PerspectiveCamera(43,9/16,.1,180);camera.position.set(8,8,13);
-const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;stage.appendChild(renderer.domElement);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;if(THREE.SRGBColorSpace)renderer.outputColorSpace=THREE.SRGBColorSpace;else if(THREE.sRGBEncoding)renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;stage.appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xd8edff,0x52604a,2));
 const sun=new THREE.DirectionalLight(0xffedcf,3.1);sun.position.set(-8,18,10);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-30;sun.shadow.camera.right=30;sun.shadow.camera.top=30;sun.shadow.camera.bottom=-30;scene.add(sun);
 const fill=new THREE.DirectionalLight(0x83baff,1.1);fill.position.set(10,8,-10);scene.add(fill);
@@ -101,7 +112,7 @@ function mapScene(){scene.background.set('#c4d6d4');scene.fog.color.set('#c4d6d4
 const pts=[new THREE.Vector3(-8,.28,13),new THREE.Vector3(-4,.28,7),new THREE.Vector3(2,.28,2),new THREE.Vector3(7,.28,-8),new THREE.Vector3(3,.28,-15)];const curve=new THREE.CatmullRomCurve3(pts);const tube=mesh(new THREE.TubeGeometry(curve,100,.11,8,false),mat('#e45d43'));tube.castShadow=false;const pin=mesh(new THREE.SphereGeometry(.38,16,12),mat('#e45d43'),world,-8,.6,13);moving.push({mapPin:pin,curve});for(let i=0;i<5;i++){const p=pts[i];mesh(new THREE.CylinderGeometry(.22,.22,.8,8),mat('#f4d36d'),world,p.x,.35,p.z)}}
 function battlefield(){scene.background.set('#d4a58b');scene.fog.color.set('#d4a58b');ground('#9a765e');for(let i=0;i<12;i++){const x=-13+(i*7%26),z=-22+(i*11%44);mesh(new THREE.DodecahedronGeometry(.8+(i%3)*.4),mat(i%2?'#6e6258':'#83786a'),world,x,.45,z)}for(let i=0;i<7;i++)box(world,-14+i*4,.7,-30, .18,1.4,.18,'#584638');for(let i=0;i<4;i++)tree(-13+i*9,22);
 for(let i=0;i<5;i++){const a=makePerson(i%2?'#344f85':'#9d4439','#d3b77b',-5+i*2.5,12+(i%2)*2,.78);a.root.rotation.y=Math.PI;moving.push({actor:a,start:a.root.position.clone(),end:new THREE.Vector3(-5+i*2.5,0,-15),speed:.38+(i%3)*.08,offset:i*.3})}}
-function build(m){clearWorld();mode=m;elapsed=0;if(m==='town')town();if(m==='map')mapScene();if(m==='battle')battlefield();hud.textContent=m==='town'?'SCENE 01 · WESTERN TOWN':m==='map'?'SCENE 02 · ANIMATED MAP':'SCENE 03 · BATTLEFIELD';camera.position.set(8,8,13);camera.lookAt(0,1,0);status.textContent='v3 · 3D scene ready · '+m}
+function build(m){clearWorld();mode=m;elapsed=0;if(m==='town')town();if(m==='map')mapScene();if(m==='battle')battlefield();hud.textContent=m==='town'?'SCENE 01 · WESTERN TOWN':m==='map'?'SCENE 02 · ANIMATED MAP':'SCENE 03 · BATTLEFIELD';camera.position.set(8,8,13);camera.lookAt(0,1,0);status.textContent='v4 · 3D scene ready · '+m}
 function update(t){for(const item of moving){if(item.actor){const a=item.actor,idx=actors.indexOf(a),active=idx===selectedActor,q=Math.max(0,Math.min(1,((t*item.speed+item.offset)%9)/9)),movingNow=active&&(actionMode==='run'||actionMode==='walk');if(movingNow)a.root.position.lerpVectors(item.start,item.end,q);const run=t*(actionMode==='walk'?6.2:10.5)+item.offset,stride=Math.sin(run);a.legs.forEach(l=>l.rotation.set(0,0,0));a.arms.forEach(l=>l.rotation.set(0,0,0));a.root.rotation.set(0,Math.PI,0);a.root.position.y=0;a.torso.rotation.set(0,0,0);a.head.rotation.set(0,0,0);if(!active)continue;
 if(movingNow){const p=actionMode==='walk'?.42:.95;a.legs[0].rotation.x=stride*p;a.legs[1].rotation.x=-stride*p;a.arms[0].rotation.x=-stride*p*.76;a.arms[1].rotation.x=stride*p*.76;a.root.position.y=Math.abs(Math.sin(run*2))*.06}
 else if(actionMode==='look'){a.head.rotation.y=Math.sin(t*2)*.58}
@@ -114,8 +125,8 @@ else if(actionMode==='pickup'){const p=pickupProps[selectedProp];if(p){const tar
 }if(item.mapPin){const p=item.curve.getPoint((t*.075)%1);item.mapPin.position.set(p.x,.65,p.z);item.mapPin.scale.setScalar(1+Math.sin(t*6)*.12)}}function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;if(playing)elapsed+=dt;update(elapsed);const target=mode==='map'?new THREE.Vector3(0,0,0):new THREE.Vector3(0,1,0);const camMode=document.querySelector('#camera').value;if(camMode==='follow'&&mode!=='map'){const lead=actors[0]?.root.position||target;camera.position.lerp(new THREE.Vector3(lead.x+10,lead.y+8,lead.z+18),.035);camera.lookAt(lead.x,1.1,lead.z-5)}else if(camMode==='low'){camera.position.lerp(new THREE.Vector3(0,3,17),.03);camera.lookAt(0,1,0)}else{camera.position.lerp(new THREE.Vector3(12,15,19),.03);camera.lookAt(target)}renderer.render(scene,camera)}
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}new ResizeObserver(resize).observe(stage);resize();
 document.querySelector('#play').onclick=()=>{playing=!playing;document.querySelector('#play').textContent=playing?'Ⅱ pause':'▶ play'};
-document.querySelector('#scene').onchange=e=>build(e.target.value);document.querySelector('#actorSelect').onchange=e=>{selectedActor=Number(e.target.value);status.textContent='v3 · selected character '+(selectedActor+1)};document.querySelector('#propSelect').onchange=e=>{selectedProp=Number(e.target.value);status.textContent='v3 · selected barrel '+(selectedProp+1)};document.querySelector('#action').onchange=e=>{actionMode=e.target.value;actionStarted=elapsed;if(heldProp){heldProp.parent?.remove(heldProp);world.add(heldProp);heldProp=null}status.textContent='v3 · character '+(selectedActor+1)+' · '+actionMode};document.querySelector('#next').onclick=()=>{const s=document.querySelector('#scene');s.selectedIndex=(s.selectedIndex+1)%s.options.length;build(s.value)};
+document.querySelector('#scene').onchange=e=>build(e.target.value);document.querySelector('#actorSelect').onchange=e=>{selectedActor=Number(e.target.value);status.textContent='v4 · selected character '+(selectedActor+1)};document.querySelector('#propSelect').onchange=e=>{selectedProp=Number(e.target.value);status.textContent='v4 · selected barrel '+(selectedProp+1)};document.querySelector('#action').onchange=e=>{actionMode=e.target.value;actionStarted=elapsed;if(heldProp){heldProp.parent?.remove(heldProp);world.add(heldProp);heldProp=null}status.textContent='v4 · character '+(selectedActor+1)+' · '+actionMode};document.querySelector('#next').onclick=()=>{const s=document.querySelector('#scene');s.selectedIndex=(s.selectedIndex+1)%s.options.length;build(s.value)};
 document.querySelector('#record').onclick=()=>{if(rec&&rec.state==='recording'){rec.stop();return}if(!renderer.domElement.captureStream||!window.MediaRecorder){status.textContent='recording not supported in this browser';return}const stream=renderer.domElement.captureStream(30),mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm';let chunks=[];try{rec=new MediaRecorder(stream,{mimeType:mime})}catch(e){status.textContent='could not start recording';return}rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};rec.onstop=()=>{const blob=new Blob(chunks,{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='toon-story-3d-scene.webm';a.click();setTimeout(()=>URL.revokeObjectURL(url),8000);stream.getTracks().forEach(v=>v.stop());document.querySelector('#record').textContent='● record';status.textContent='scene recording exported · WebM'};rec.start();document.querySelector('#record').textContent='■ stop';status.textContent='recording scene… keep this page open'};
-build('town');frame(performance.now());status.textContent='v3 · 3D engine ready · real 3D scene and character locomotion';
-}).catch(err=>{const s=document.querySelector('#status');s.textContent='v3 · 3D engine failed to load: '+(err?.message||String(err))+' · CDN blocked or WebGL unavailable';console.error('3D engine startup failed',err)});
+build('town');frame(performance.now());status.textContent='v4 · 3D engine ready · real 3D scene and character locomotion';
+}).catch(err=>{const s=document.querySelector('#status');s.textContent='v4 · 3D engine failed to load: '+(err?.message||String(err))+' · CDN blocked or WebGL unavailable';console.error('3D engine startup failed',err)});
 </script></body></html>
