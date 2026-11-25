@@ -1,95 +1,71 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Toon Story Studio — Prototype</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Toon Story Studio</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#10131b;color:#f4f2ec;font:15px system-ui,sans-serif;display:grid;min-height:100vh;place-items:center;padding:16px}
-main{width:min(100%,560px)}h1{font-size:20px;margin:0 0 5px}p{color:#b9c0ce;margin:0 0 14px;font-size:13px}
-.stage{position:relative;width:100%;aspect-ratio:9/16;background:#d8ad72;border:1px solid #454b5b;border-radius:18px;overflow:hidden}
-canvas{width:100%;height:100%;display:block}
-.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-button{border:0;border-radius:12px;padding:12px 14px;background:#293246;color:white;font-weight:650;flex:1;min-width:100px}
-button.primary{background:#e45b43}button:disabled{opacity:.5}
-#status{font-size:12px;color:#aeb8c9;margin-top:9px;min-height:18px}
-</style></head>
-<body><main>
-<h1>toon story studio — first prototype</h1>
-<p>an original cartoon scene with moving characters, camera motion and subtitles. no AI video credits needed for this test.</p>
-<div class="stage"><canvas id="c" width="720" height="1280"></canvas></div>
-<div class="controls">
-<button id="play" class="primary">pause</button><button id="scene">change scene</button><button id="record">record 8 sec</button>
-</div><div id="status">prototype running • original artwork drawn in code</div>
-</main>
+*{box-sizing:border-box}body{margin:0;padding:16px;background:#10131b;color:#f4f2ec;font:15px system-ui;display:grid;place-items:center;min-height:100vh}main{width:min(100%,560px)}h1{font-size:20px;margin:0 0 5px}p{color:#b9c0ce;font-size:13px;margin:0 0 14px}.stage{width:100%;aspect-ratio:9/16;border:1px solid #454b5b;border-radius:18px;overflow:hidden;background:#c99b67}canvas{width:100%;height:100%;display:block}.controls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}button{border:0;border-radius:12px;padding:12px 14px;background:#293246;color:white;font-weight:650;flex:1;min-width:100px}button.primary{background:#e45b43}#status{font-size:12px;color:#aeb8c9;margin-top:9px;min-height:18px}
+</style></head><body><main><h1>toon story studio — conversation test</h1><p>two original characters talking, reacting, gesturing and moving in a western street.</p><div class="stage"><canvas id="c" width="720" height="1280"></canvas></div><div class="controls"><button id="play" class="primary">pause</button><button id="scene">change scene</button><button id="record">record 8 sec</button></div><div id="status">conversation animation running • code-drawn characters</div></main>
 <script>
 const c=document.getElementById('c'),x=c.getContext('2d'),status=document.getElementById('status');
 let running=true,t=0,scene=0,recorder=null,chunks=[];
-const subtitles=['“you really thought that would work?”','“watch this. i’ve got a plan.”','“well… that went badly.”'];
+const lines=[['“you said this was a good idea!”','“it was a good idea… five minutes ago.”'],['“did you hear that?”','“hear what?!”'],['“hand over the map.”','“come and take it, then.”']];
 function rr(a,b,w,h,r,col){x.fillStyle=col;x.beginPath();x.roundRect(a,b,w,h,r);x.fill()}
-function line(ax,ay,bx,by,w,col='#24202a'){x.strokeStyle=col;x.lineWidth=w;x.lineCap='round';x.beginPath();x.moveTo(ax,ay);x.lineTo(bx,by);x.stroke()}
+function path(points,w,col){x.strokeStyle=col;x.lineWidth=w;x.lineCap='round';x.lineJoin='round';x.beginPath();points.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.stroke()}
 function bg(){
- const g=x.createLinearGradient(0,0,0,1280);g.addColorStop(0,scene===1?'#8bb5d0':'#f6cf91');g.addColorStop(.62,'#e6b878');g.addColorStop(1,'#a66c49');x.fillStyle=g;x.fillRect(0,0,720,1280);
- // distant hills
- x.fillStyle=scene===1?'#657f70':'#b27a54';x.beginPath();x.moveTo(0,570);x.quadraticCurveTo(180,430,360,570);x.quadraticCurveTo(540,420,720,550);x.lineTo(720,850);x.lineTo(0,850);x.fill();
- // street
- x.fillStyle='#d6ad78';x.beginPath();x.moveTo(210,590);x.lineTo(520,590);x.lineTo(720,1280);x.lineTo(0,1280);x.fill();
- // western buildings / city variation
- if(scene!==1){
-  rr(20,390,190,370,8,'#85513d');rr(42,435,55,100,4,'#263c4a');rr(125,435,55,100,4,'#263c4a');rr(0,365,225,45,5,'#54372e');
-  rr(510,420,190,340,8,'#9a5b3d');rr(540,460,55,105,4,'#253a49');rr(620,460,55,105,4,'#253a49');rr(490,390,230,40,5,'#56372e');
-  rr(250,450,220,95,8,'#4d302a');x.fillStyle='#f4d89b';x.font='bold 43px Georgia';x.textAlign='center';x.fillText('THE SALOON',360,512);
- }else{
-  for(let i=0;i<6;i++){rr(i*135-25,420+(i%2)*35,100,250,5,'#526d79');rr(i*135,460+(i%2)*35,45,90,3,'#d5b77c')}
- }
- // ground marks
- for(let i=0;i<22;i++){let xx=(i*97+30)%720, yy=850+(i*67)%410;x.fillStyle='rgba(94,65,46,.22)';x.beginPath();x.ellipse(xx,yy,9,3,.2,0,Math.PI*2);x.fill()}
+ let g=x.createLinearGradient(0,0,0,1280);g.addColorStop(0,scene===1?'#789db2':'#f4ca8d');g.addColorStop(.58,'#d9a66f');g.addColorStop(1,'#936044');x.fillStyle=g;x.fillRect(0,0,720,1280);
+ x.fillStyle='#a87551';x.beginPath();x.moveTo(0,570);x.quadraticCurveTo(170,440,360,560);x.quadraticCurveTo(540,420,720,550);x.lineTo(720,900);x.lineTo(0,900);x.fill();
+ x.fillStyle='#d6ae7b';x.beginPath();x.moveTo(190,590);x.lineTo(530,590);x.lineTo(720,1280);x.lineTo(0,1280);x.fill();
+ // layered storefronts
+ rr(10,390,205,400,8,'#8a5139');rr(31,435,62,112,4,'#29404a');rr(125,435,62,112,4,'#29404a');rr(0,365,225,48,5,'#4f342e');
+ rr(505,410,205,380,8,'#985a3b');rr(532,455,62,112,4,'#29404a');rr(620,455,62,112,4,'#29404a');rr(490,385,230,45,5,'#4f342e');
+ rr(250,455,220,100,7,'#4b3029');x.fillStyle='#f4d89b';x.font='bold 42px Georgia';x.textAlign='center';x.fillText(scene===1?'GENERAL STORE':'THE SALOON',360,518);
+ // porch and posts
+ rr(0,770,720,22,4,'#65402f');for(let xx of [25,205,505,685])rr(xx,580,16,220,4,'#6d4734');
+ for(let i=0;i<30;i++){let xx=(i*89+15)%720,yy=850+(i*73)%410;x.fillStyle='rgba(88,56,38,.2)';x.beginPath();x.ellipse(xx,yy,8,3,.1,0,7);x.fill()}
 }
-function person(cx,cy,phase,kind=0){
- x.save();x.translate(cx,cy+Math.sin(phase*2)*5);
- const coat=kind?'#287b78':'#b45b38',shirt=kind?'#e5d5ad':'#e4c47e';
- // legs with alternating stride
- let s=Math.sin(phase)*22;
- line(-10,125,-20+s,205,15,'#29232b');line(12,125,20-s,205,15,'#29232b');
- line(-20+s,205,-43+s,208,12,'#29232b');line(20-s,205,42-s,208,12,'#29232b');
- // body
- x.fillStyle=coat;x.beginPath();x.moveTo(-39,25);x.quadraticCurveTo(0,5,38,25);x.lineTo(31,137);x.quadraticCurveTo(0,155,-31,137);x.closePath();x.fill();x.strokeStyle='#29232b';x.lineWidth=8;x.stroke();
- rr(-18,34,36,72,8,shirt);
- // arms, one gesturing
- line(-34,43,-58,95+Math.sin(phase*2)*8,13,'#29232b');line(34,43,57,82-Math.sin(phase*2)*12,13,'#29232b');
- // head
- x.fillStyle='#f3e7d0';x.beginPath();x.arc(0,-20,55,0,Math.PI*2);x.fill();x.strokeStyle='#29232b';x.lineWidth=9;x.stroke();
+function character(cx,cy,phase,id,speaking,emotion){
+ x.save();x.translate(cx,cy+Math.sin(phase*2)*4);let walk=Math.sin(phase*2.5),gesture=speaking?Math.sin(t*8+id)*.65:Math.sin(phase)*.12;
+ const coat=id?'#267b78':'#a94f36',trim=id?'#e8d8b4':'#e7c67f',ink='#29232b';
+ // cast shadow
+ x.fillStyle='rgba(44,31,25,.2)';x.beginPath();x.ellipse(0,210,62,12,0,0,7);x.fill();
+ // legs animated separately
+ path([[-13,125],[-15+walk*17,170],[-22+walk*23,207]],17,ink);path([[13,125],[15-walk*17,170],[22-walk*23,207]],17,ink);
+ path([[-22+walk*23,207],[-44+walk*23,211]],12,ink);path([[22-walk*23,207],[44-walk*23,211]],12,ink);
+ // torso jacket and vest
+ x.fillStyle=coat;x.beginPath();x.moveTo(-40,20);x.quadraticCurveTo(0,0,40,20);x.lineTo(34,133);x.quadraticCurveTo(0,151,-34,133);x.closePath();x.fill();x.strokeStyle=ink;x.lineWidth=8;x.stroke();
+ rr(-17,30,34,95,5,trim);path([[-31,34],[-18,65]],5,'#f1d7a2');path([[31,34],[18,65]],5,'#f1d7a2');
+ // arms with speech gesture
+ path([[-35,40],[-49,75],[-55-gesture*22,105-gesture*12]],13,ink);
+ path([[35,40],[49,72],[55+gesture*28,92-gesture*25]],13,ink);
+ x.fillStyle='#f1dfc6';x.beginPath();x.arc(55+gesture*28,92-gesture*25,8,0,7);x.fill();
+ // neck and head
+ rr(-12,-2,24,35,6,'#d9a77b');x.fillStyle='#f2e5d0';x.beginPath();x.ellipse(0,-39,55,62,0,0,7);x.fill();x.strokeStyle=ink;x.lineWidth=9;x.stroke();
  // hair / hat
- if(kind){x.fillStyle='#29232b';x.beginPath();x.arc(0,-42,52,Math.PI,Math.PI*2);x.fill()}
- else{ x.fillStyle='#d4a64f';x.beginPath();x.ellipse(0,-66,66,13,0,0,Math.PI*2);x.fill();rr(-39,-92,78,28,12,'#b98542'); }
- // face
- x.fillStyle='#29232b';x.beginPath();x.ellipse(-17,-25,5,8,0,0,Math.PI*2);x.ellipse(17,-25,5,8,0,0,Math.PI*2);x.fill();
- x.strokeStyle='#29232b';x.lineWidth=5;x.beginPath();x.arc(0,-3,kind?13:10,.15,Math.PI-.15);x.stroke();
+ if(id){x.fillStyle='#30252a';x.beginPath();x.arc(0,-62,53,Math.PI,Math.PI*2);x.lineTo(48,-42);x.quadraticCurveTo(0,-57,-48,-42);x.fill()}
+ else{ x.fillStyle='#c99549';x.beginPath();x.ellipse(0,-91,70,14,0,0,7);x.fill();rr(-43,-121,86,34,10,'#b77d3d');rr(-43,-93,86,7,3,'#75472f');}
+ // eyes and expressive brows
+ x.fillStyle=ink;x.beginPath();x.ellipse(-18,-47,5,9,0,0,7);x.ellipse(18,-47,5,9,0,0,7);x.fill();
+ path([[-28,-61],[-15,-64]],5,ink);path([[15,-64],[28,-61]],5,ink);
+ if(emotion==='surprised'){x.strokeStyle=ink;x.lineWidth=5;x.beginPath();x.arc(0,-17,10,0,7);x.stroke()}
+ else if(speaking){let open=5+Math.abs(Math.sin(t*13+id))*12;rr(-13,-25,26,open,8,ink);if(open>12)rr(-7,-23,14,4,2,'#e88d79')}
+ else{ x.strokeStyle=ink;x.lineWidth=5;x.beginPath();x.arc(0,-26,emotion==='angry'?13:11,.12,Math.PI-.12);x.stroke()}
  x.restore();
 }
 function draw(){
- x.clearRect(0,0,720,1280);x.save();
- let cam=Math.sin(t*.7)*7;x.translate(cam,0);x.scale(1+Math.sin(t*.45)*.012,1+Math.sin(t*.45)*.012);
- bg();
- // props
- if(scene===0){rr(430,900,185,42,12,'#60412e');rr(455,870,130,45,8,'#bd8b50');}
- person(scene===1?455:490,790,t*.9,1);person(scene===1?260:260,835,t*1.15,0);
- // foreground dust puffs
- for(let i=0;i<7;i++){let xx=(i*121+t*38)%760;let yy=1050+(i%3)*38;x.fillStyle='rgba(245,224,183,.23)';x.beginPath();x.arc(xx,yy,12+(i%3)*6,0,7);x.fill()}
+ x.clearRect(0,0,720,1280);x.save();let cam=Math.sin(t*.55)*9;x.translate(cam,0);x.scale(1+Math.sin(t*.35)*.012,1+Math.sin(t*.35)*.012);bg();
+ let beat=Math.floor(t/3.2)%2,phase=t*1.8;
+ // subtle approach and retreat through each exchange
+ let shift=Math.sin(t*.65)*13;
+ character(250-shift,835,phase,0,beat===0,scene===2?'angry':'normal');
+ character(485+shift,800,phase+1,1,beat===1,scene===1&&beat===0?'surprised':'normal');
+ // props and dust
+ if(scene===0){rr(430,940,170,36,10,'#5a392c');rr(450,912,125,38,8,'#b9864c')}
+ for(let i=0;i<8;i++){let xx=(i*107+t*28)%760,yy=1030+(i%3)*40;x.fillStyle='rgba(245,224,183,.25)';x.beginPath();x.arc(xx,yy,11+(i%3)*5,0,7);x.fill()}
  x.restore();
- // subtitle panel
- rr(48,1080,624,112,18,'rgba(15,18,26,.78)');x.fillStyle='white';x.font='bold 43px system-ui';x.textAlign='center';x.strokeStyle='#17151a';x.lineWidth=7;x.strokeText(subtitles[scene],360,1148,590);x.fillText(subtitles[scene],360,1148,590);
- x.fillStyle='rgba(255,255,255,.75)';x.font='20px system-ui';x.fillText('TOON STORY STUDIO • DEMO',360,1234);
+ let speaker=Math.floor(t/3.2)%2,caption=lines[scene][speaker];
+ rr(38,1080,644,116,18,'rgba(15,18,26,.86)');x.font='bold 39px system-ui';x.textAlign='center';x.lineWidth=7;x.strokeStyle='#17151a';x.strokeText(caption,360,1148,600);x.fillStyle='white';x.fillText(caption,360,1148,600);
+ x.font='20px system-ui';x.fillStyle='rgba(255,255,255,.8)';x.fillText('TOON STORY STUDIO • CONVERSATION TEST',360,1235);
 }
 function loop(){if(running){t+=1/30;draw()}requestAnimationFrame(loop)}loop();
-document.getElementById('play').onclick=()=>{running=!running;document.getElementById('play').textContent=running?'pause':'play';};
-document.getElementById('scene').onclick=()=>{scene=(scene+1)%3;draw();status.textContent='scene '+(scene+1)+' of 3';};
-document.getElementById('record').onclick=()=>{
- if(!c.captureStream||!window.MediaRecorder){status.textContent='recording is not supported in this browser. use screen recording for now.';return}
- if(recorder&&recorder.state==='recording'){recorder.stop();return}
- chunks=[];const stream=c.captureStream(30);let mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm';
- try{recorder=new MediaRecorder(stream,{mimeType:mime});}catch(e){status.textContent='recording unavailable on this browser.';return}
- recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
- recorder.onstop=()=>{const blob=new Blob(chunks,{type:'video/webm'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='toon-story-demo.webm';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);status.textContent='recording saved. if your phone saves webm, you can import it into CapCut.';document.getElementById('record').textContent='record 8 sec'};
- recorder.start();status.textContent='recording…';document.getElementById('record').textContent='stop recording';setTimeout(()=>{if(recorder&&recorder.state==='recording')recorder.stop()},8000);
-};
+document.getElementById('play').onclick=()=>{running=!running;document.getElementById('play').textContent=running?'pause':'play'};
+document.getElementById('scene').onclick=()=>{scene=(scene+1)%3;draw();status.textContent='set '+(scene+1)+' • new dialogue and location'};
+document.getElementById('record').onclick=()=>{if(!c.captureStream||!window.MediaRecorder){status.textContent='recording unsupported here — use your phone screen recorder';return}if(recorder&&recorder.state==='recording'){recorder.stop();return}chunks=[];let stream=c.captureStream(30),mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm';try{recorder=new MediaRecorder(stream,{mimeType:mime})}catch(e){status.textContent='recording unavailable in this browser';return}recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onstop=()=>{let blob=new Blob(chunks,{type:'video/webm'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='toon-conversation-test.webm';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);status.textContent='recording ready — import the WebM into CapCut';document.getElementById('record').textContent='record 8 sec'};recorder.start();status.textContent='recording…';document.getElementById('record').textContent='stop recording';setTimeout(()=>{if(recorder&&recorder.state==='recording')recorder.stop()},8000)};
 </script></body></html>
