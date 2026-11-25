@@ -19,7 +19,7 @@ const fill=new THREE.DirectionalLight(0x83baff,1.1);fill.position.set(10,8,-10);
 const world=new THREE.Group();scene.add(world);let actors=[],moving=[],mode='town',playing=true,elapsed=0,last=performance.now(),rec=null;
 const mat=(color,roughness=.85)=>new THREE.MeshStandardMaterial({color,roughness});
 function mesh(geo,material,parent=world,x=0,y=0,z=0){const o=new THREE.Mesh(geo,material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
-function box(parent,x,y,z,w,h,d,color){return mesh(new THREE.BoxGeometry(w,h,d),mat(color),parent,x,y,z)}
+function box(parent,x,y,z,w,h,d,color){return mesh(new THREE.BoxGeometry(w,h,d),color?.isMaterial?color:mat(color),parent,x,y,z)}
 function cylinder(parent,a,b,r1,r2,color){const dir=new THREE.Vector3().subVectors(b,a),o=mesh(new THREE.CylinderGeometry(r2,r1,dir.length(),10),mat(color),parent);o.position.copy(a).add(b).multiplyScalar(.5);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());return o}
 function limb(parent,len,r,color){const pivot=new THREE.Group();parent.add(pivot);mesh(new THREE.CylinderGeometry(r*.72,r,len,10),mat(color),pivot,0,-len/2,0);return pivot}
 function makePerson(color,accent,x,z,scale=1){
